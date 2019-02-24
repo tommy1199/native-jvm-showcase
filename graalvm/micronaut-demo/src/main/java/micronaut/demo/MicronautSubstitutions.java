@@ -6,8 +6,18 @@ import com.oracle.svm.core.annotate.RecomputeFieldValue.Kind;
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
 
+import io.micronaut.context.RequiresCondition;
+import io.micronaut.context.annotation.Requires;
+import io.micronaut.context.condition.ConditionContext;
+import io.micronaut.core.annotation.AnnotationValue;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.JdkLoggerFactory;
+
+@TargetClass(RequiresCondition.class)
+final class io_micronaut_context_RequiresCondition {
+    @Substitute
+    private boolean matchesSdk(ConditionContext context, AnnotationValue<Requires> requirements) { return true; }
+}
 
 @TargetClass(io.netty.util.internal.logging.InternalLoggerFactory.class)
 final class Target_io_netty_util_internal_logging_InternalLoggerFactory {
