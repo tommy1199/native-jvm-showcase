@@ -1,0 +1,38 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "4.0.2"
+}
+
+apply plugin:"application"
+apply plugin:"java"
+
+version "0.1"
+group "javalin.demo"
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://jcenter.bintray.com" }
+}
+
+dependencies {
+    compile "io.javalin:javalin:2.6.0"
+    runtime "org.slf4j:slf4j-simple:1.7.25"
+    runtime "com.fasterxml.jackson.core:jackson-databind:2.9.8"
+}
+
+compileJava {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
+
+shadowJar {
+    mergeServiceFiles()
+}
+
+run.jvmArgs('-noverify', '-XX:TieredStopAtLevel=1')
+
+mainClassName = "javalin.demo.Application"
+tasks.withType(JavaCompile){
+    options.encoding = "UTF-8"
+    options.compilerArgs.add('-parameters')
+}
