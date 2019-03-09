@@ -1,0 +1,9 @@
+version: "3"
+services:
+  db:
+    image: postgres:11.2
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+    ports:
+      - 5432:5432
