@@ -1,3 +1,11 @@
 micronaut:
     application:
         name: micronaut-demo
+jasync:
+    client:
+        port: 5432
+        host: localhost
+        database: postgres
+        username: postgres
+        maxActiveConnections: 5
+

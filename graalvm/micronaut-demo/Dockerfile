@@ -1,4 +1,4 @@
-FROM oracle/graalvm-ce:1.0.0-rc12 as builder
+FROM oracle/graalvm-ce:1.0.0-rc13 as builder
 EXPOSE 8080
 COPY build/libs/*-all.jar micronaut-demo.jar
 ADD . build

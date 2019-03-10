@@ -1,6 +1,8 @@
 package micronaut.demo;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
@@ -24,16 +26,23 @@ public class TodoController {
 
     @Delete("/{id}")
     public HttpResponse delete(Integer id) {
-        if (todoService.deleteById(id)) {
+        if (todoService.delete(id)) {
             return ok();
         } else {
             return noContent();
         }
     }
 
-    @Post
-    public HttpResponse<Todo> newTodo(String title) {
-        return created(todoService.addTodo(title));
+    @Post(consumes = MediaType.TEXT_PLAIN)
+    public HttpResponse<Todo> add(String title) {
+        return created(todoService.add(title));
+    }
+
+    @Post(value = "/{id}", consumes = MediaType.TEXT_PLAIN)
+    public HttpResponse<Todo> update(Integer id, @Body String title) {
+        return todoService.update(id, title)
+                .map(HttpResponse::ok)
+                .orElse(HttpResponse.badRequest());
     }
 
     @Get()

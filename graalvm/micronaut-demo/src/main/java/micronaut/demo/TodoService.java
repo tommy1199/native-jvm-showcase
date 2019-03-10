@@ -1,52 +1,76 @@
 package micronaut.demo;
 
+import com.github.jasync.sql.db.Connection;
+import com.github.jasync.sql.db.QueryResult;
+import com.github.jasync.sql.db.ResultSet;
+import com.github.jasync.sql.db.RowData;
 import micronaut.demo.model.Todo;
 
 import javax.inject.Singleton;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class TodoService {
 
-    List<Todo> todos = Arrays.asList(
-            new Todo(1, "todo 1"),
-            new Todo(2, "todo 2"),
-            new Todo(3, "todo 3"),
-            new Todo(4, "todo 4")
-    );
+    private final Connection client;
+
+    public TodoService(Connection client) {
+        this.client = client;
+    }
 
     public List<Todo> findAll() {
-        return todos;
+        return client.sendQuery("SELECT * FROM todos")
+                .thenApply(QueryResult::getRows)
+                .thenApply(this::toTodoList)
+                .join();
     }
 
     public Optional<Todo> findById(int id) {
-        return todos.stream()
-                .filter(todo -> todo.getId() == id)
-                .findFirst();
+        return client.sendPreparedStatement("SELECT FROM todos where id = ?", asList(id))
+                .thenApply(QueryResult::getRows)
+                .thenApply(this::toOptionalTodo)
+                .join();
     }
 
-    public Todo addTodo(String title) {
-        Todo todo = new Todo(generateId(), title);
-        todos.add(todo);
-        return todo;
+    public Optional<Todo> update(int id, String text) {
+        return client.sendPreparedStatement("UPDATE todos SET content = ? where id = ? RETURNING id, content", asList(text, id))
+                .thenApply(QueryResult::getRows)
+                .thenApply(this::toOptionalTodo)
+                .join();
     }
 
-    public int generateId() {
-        int lastId = todos.stream()
-                .mapToInt(Todo::getId)
-                .max()
-                .orElse(0);
-        return lastId + 1;
+    public Todo add(String title) {
+        return client.sendPreparedStatement("INSERT INTO todos (content) VALUES (?) RETURNING id, content", asList(title))
+                .thenApply(QueryResult::getRows)
+                .thenApply(this::toOptionalTodo)
+                .thenApply(Optional::get)
+                .join();
     }
 
-    public boolean deleteById(Integer id) {
-        Optional<Todo> todo = findById(id);
-        if (todo.isPresent()) {
-            return true;
-        } else {
-            return false;
-        }
+    public boolean delete(Integer id) {
+        return client.sendPreparedStatement("DELETE FROM todos where id = ?", asList(id))
+                .thenApply(QueryResult::getRowsAffected)
+                .thenApply(rowsAffected -> rowsAffected > 0)
+                .join();
+    }
+
+    private List<Todo> toTodoList(ResultSet resultSet) {
+        return resultSet.stream()
+                .map(this::toTodo)
+                .collect(toList());
+    }
+
+    private Optional<Todo> toOptionalTodo(ResultSet resultSet) {
+        return resultSet.stream()
+                .findFirst()
+                .map(this::toTodo);
+    }
+
+    private Todo toTodo(RowData row) {
+        return new Todo(row.getInt("id"), row.getString("content"));
     }
 }
