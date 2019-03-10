@@ -1,76 +1,79 @@
 package micronaut.demo;
 
-import com.github.jasync.sql.db.Connection;
-import com.github.jasync.sql.db.QueryResult;
-import com.github.jasync.sql.db.ResultSet;
-import com.github.jasync.sql.db.RowData;
+import io.reactiverse.reactivex.pgclient.PgIterator;
+import io.reactiverse.reactivex.pgclient.PgPool;
+import io.reactiverse.reactivex.pgclient.PgRowSet;
+import io.reactiverse.reactivex.pgclient.Row;
+import io.reactiverse.reactivex.pgclient.Tuple;
 import micronaut.demo.model.Todo;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class TodoService {
 
-    private final Connection client;
+    private final PgPool client;
 
-    public TodoService(Connection client) {
+    public TodoService(PgPool client) {
         this.client = client;
     }
 
     public List<Todo> findAll() {
-        return client.sendQuery("SELECT * FROM todos")
-                .thenApply(QueryResult::getRows)
-                .thenApply(this::toTodoList)
-                .join();
+        return client.rxQuery("SELECT * FROM todos")
+                .map(PgRowSet::iterator)
+                .map(this::toTodoList)
+                .blockingGet();
     }
 
     public Optional<Todo> findById(int id) {
-        return client.sendPreparedStatement("SELECT FROM todos where id = ?", asList(id))
-                .thenApply(QueryResult::getRows)
-                .thenApply(this::toOptionalTodo)
-                .join();
+        return client.rxPreparedQuery("SELECT FROM todos where id = $1", Tuple.of(id))
+                .map(PgRowSet::iterator)
+                .map(this::toOptionalTodo)
+                .blockingGet();
     }
 
     public Optional<Todo> update(int id, String text) {
-        return client.sendPreparedStatement("UPDATE todos SET content = ? where id = ? RETURNING id, content", asList(text, id))
-                .thenApply(QueryResult::getRows)
-                .thenApply(this::toOptionalTodo)
-                .join();
+        return client.rxPreparedQuery("UPDATE todos SET content = $1 where id = $2 RETURNING id, content", Tuple.of(text, id))
+                .map(PgRowSet::iterator)
+                .map(this::toOptionalTodo)
+                .blockingGet();
     }
 
     public Todo add(String title) {
-        return client.sendPreparedStatement("INSERT INTO todos (content) VALUES (?) RETURNING id, content", asList(title))
-                .thenApply(QueryResult::getRows)
-                .thenApply(this::toOptionalTodo)
-                .thenApply(Optional::get)
-                .join();
+        return client.rxPreparedQuery("INSERT INTO todos (content) VALUES ($1) RETURNING id, content", Tuple.of(title))
+                .map(PgRowSet::iterator)
+                .map(this::toOptionalTodo)
+                .map(Optional::get)
+                .blockingGet();
     }
 
     public boolean delete(Integer id) {
-        return client.sendPreparedStatement("DELETE FROM todos where id = ?", asList(id))
-                .thenApply(QueryResult::getRowsAffected)
-                .thenApply(rowsAffected -> rowsAffected > 0)
-                .join();
+        return client.rxPreparedQuery("DELETE FROM todos where id = $1", Tuple.of(id))
+                .map(PgRowSet::size)
+                .map(size -> size > 0)
+                .blockingGet();
     }
 
-    private List<Todo> toTodoList(ResultSet resultSet) {
-        return resultSet.stream()
-                .map(this::toTodo)
-                .collect(toList());
+    private List<Todo> toTodoList(PgIterator iterator) {
+        List<Todo> todos = new ArrayList<>();
+        while (iterator.hasNext()) {
+            todos.add(toTodo(iterator.next()));
+        }
+        return todos;
     }
 
-    private Optional<Todo> toOptionalTodo(ResultSet resultSet) {
-        return resultSet.stream()
-                .findFirst()
-                .map(this::toTodo);
+    private Optional<Todo> toOptionalTodo(PgIterator iterator) {
+        if (iterator.hasNext()) {
+            return Optional.of(toTodo(iterator.next()));
+        } else {
+            return Optional.empty();
+        }
     }
 
-    private Todo toTodo(RowData row) {
-        return new Todo(row.getInt("id"), row.getString("content"));
+    private Todo toTodo(Row row) {
+        return new Todo(row.getInteger("id"), row.getString("content"));
     }
 }
