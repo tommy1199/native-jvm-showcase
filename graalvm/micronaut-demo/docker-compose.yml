@@ -1,5 +1,13 @@
 version: "3"
 services:
+  app:
+    image: micronaut-demo
+    environment:
+      - POSTGRES_REACTIVE_CLIENT_HOST=db
+    depends_on:
+      - db
+    ports:
+      - 8080:8080
   db:
     image: postgres:11.2
     volumes:
