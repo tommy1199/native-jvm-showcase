@@ -1,12 +1,13 @@
 micronaut:
     application:
         name: micronaut-demo
-postgres:
-    reactive:
-        client:
-            port: 5432
-            host: localhost
-            database: postgres
-            user: postgres
-            maxSize: 5
-
+datasources:
+    default:
+        url: jdbc:postgresql://${DB_HOST:localhost}/${DB_NAME:postgres}
+        username: postgres
+        password: ""
+        driverClassName: org.postgresql.Driver
+jpa:
+    default:
+        packages-to-scan:
+            - 'micronaut.demo.model'

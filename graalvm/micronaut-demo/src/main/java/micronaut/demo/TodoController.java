@@ -34,7 +34,7 @@ public class TodoController {
     }
 
     @Post(consumes = MediaType.TEXT_PLAIN)
-    public HttpResponse<Todo> add(String title) {
+    public HttpResponse<Todo> add(@Body String title) {
         return created(todoService.add(title));
     }
 
