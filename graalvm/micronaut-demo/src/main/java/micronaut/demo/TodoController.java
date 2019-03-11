@@ -34,25 +34,25 @@ public class TodoController {
     }
 
     @Post(consumes = MediaType.TEXT_PLAIN)
-    public HttpResponse<Todo> add(@Body String title) {
+    public HttpResponse add(@Body String title) {
         return created(todoService.add(title));
     }
 
     @Post(value = "/{id}", consumes = MediaType.TEXT_PLAIN)
-    public HttpResponse<Todo> update(Integer id, @Body String title) {
+    public HttpResponse update(Integer id, @Body String title) {
         return todoService.update(id, title)
                 .map(HttpResponse::ok)
                 .orElse(HttpResponse.badRequest());
     }
 
     @Get()
-    public HttpResponse<List<Todo>> todos() {
+    public HttpResponse todos() {
         return ok(
                 todoService.findAll());
     }
 
     @Get("/{id}")
-    public HttpResponse<Todo> todo(Integer id) {
+    public HttpResponse todo(Integer id) {
         return todoService.findById(id)
                 .map(HttpResponse::ok)
                 .orElse(HttpResponse.badRequest());

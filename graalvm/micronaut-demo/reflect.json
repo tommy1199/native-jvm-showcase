@@ -596,10 +596,10 @@
   "name" : "javax.inject.Singleton",
   "allDeclaredConstructors" : true
 }, {
-  "name" : "micronaut.demo.$JooqFactory$DslDefinitionClass",
+  "name" : "micronaut.demo.$DSLFactory$DslContextDefinitionClass",
   "allDeclaredConstructors" : true
 }, {
-  "name" : "micronaut.demo.$JooqFactoryDefinitionClass",
+  "name" : "micronaut.demo.$DSLFactoryDefinitionClass",
   "allDeclaredConstructors" : true
 }, {
   "name" : "micronaut.demo.$TodoControllerDefinitionClass",
