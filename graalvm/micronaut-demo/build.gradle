@@ -25,7 +25,6 @@ dependencyManagement {
 
 dependencies {
     annotationProcessor "io.micronaut:micronaut-inject-java"
-    annotationProcessor "javax.persistence:javax.persistence-api:2.2"
     compile "io.micronaut:micronaut-http-server-netty"
     compile "io.micronaut:micronaut-inject"
     compile "io.micronaut:micronaut-runtime"
