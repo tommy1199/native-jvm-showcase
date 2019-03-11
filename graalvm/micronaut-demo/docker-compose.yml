@@ -3,7 +3,7 @@ services:
   app:
     image: micronaut-demo
     environment:
-      - POSTGRES_REACTIVE_CLIENT_HOST=db
+      - DB_HOST=db
     depends_on:
       - db
     ports:

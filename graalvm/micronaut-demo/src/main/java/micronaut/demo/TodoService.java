@@ -1,64 +1,71 @@
 package micronaut.demo;
 
-import io.micronaut.spring.tx.annotation.Transactional;
 import micronaut.demo.model.Todo;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Table;
 
 import javax.inject.Singleton;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Optional;
+
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.table;
 
 @Singleton
 public class TodoService {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private static final Table<Record> TODOS_TABLE = table("todos");
+    private static final Field<Integer> ID_COLUMN = field("id", Integer.class);
+    private static final Field<String> CONTENT_COLUMN = field("content", String.class);
 
-    public TodoService(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    private DSLContext context;
+
+    public TodoService(DSLContext context) {
+        this.context = context;
     }
 
-    @Transactional(readOnly = true)
     public List<Todo> findAll() {
-        return entityManager.createNativeQuery("SELECT * FROM todos", Todo.class)
-                .getResultList();
+        return context.selectFrom(TODOS_TABLE)
+                .orderBy(ID_COLUMN)
+                .fetch()
+                .map(this::toTodo);
     }
 
-    @Transactional(readOnly = true)
     public Optional<Todo> findById(int id) {
-        return entityManager.createNativeQuery("SELECT * FROM todos where id = :id", Todo.class)
-                .setParameter("id", id)
-                .getResultList()
-                .stream()
-                .findFirst();
+        return context.selectFrom(TODOS_TABLE)
+                .where(ID_COLUMN.eq(id))
+                .fetchOptional()
+                .map(this::toTodo);
     }
 
-    @Transactional
     public Optional<Todo> update(int id, String text) {
-        return entityManager.createNativeQuery("UPDATE todos SET content = :content where id = :id RETURNING id, content", Todo.class)
-                .setParameter("id", id)
-                .setParameter("content", text)
-                .getResultList()
-                .stream()
-                .findFirst();
+        return context.update(TODOS_TABLE)
+                .set(CONTENT_COLUMN, text)
+                .where(ID_COLUMN.eq(id))
+                .returning(ID_COLUMN, CONTENT_COLUMN)
+                .fetchOptional()
+                .map(this::toTodo);
+
     }
 
-    @Transactional
     public Todo add(String title) {
-        return (Todo) entityManager.createNativeQuery("INSERT INTO todos (content) VALUES (:content) RETURNING id, content", Todo.class)
-                .setParameter("content", title)
-                .getSingleResult();
+        return context.insertInto(TODOS_TABLE, CONTENT_COLUMN)
+                .values(title)
+                .returning(ID_COLUMN, CONTENT_COLUMN)
+                .fetchOptional()
+                .map(this::toTodo)
+                .get();
     }
 
-    @Transactional
     public boolean delete(Integer id) {
-        Optional<Todo> todo = findById(id);
-        if (todo.isPresent()) {
-            entityManager.remove(todo.get());
-            return true;
-        } else {
-            return false;
-        }
+        return context.deleteFrom(TODOS_TABLE)
+                .where(ID_COLUMN.eq(id))
+                .execute() < 0;
+    }
+
+    private Todo toTodo(Record record) {
+        return new Todo(record.getValue(ID_COLUMN), record.getValue(CONTENT_COLUMN));
     }
 }

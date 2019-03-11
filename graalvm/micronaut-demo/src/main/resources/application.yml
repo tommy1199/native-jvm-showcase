@@ -3,11 +3,7 @@ micronaut:
         name: micronaut-demo
 datasources:
     default:
-        url: jdbc:postgresql://${DB_HOST:localhost}/${DB_NAME:postgres}
+        url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:postgres}
         username: postgres
         password: ""
         driverClassName: org.postgresql.Driver
-jpa:
-    default:
-        packages-to-scan:
-            - 'micronaut.demo.model'
