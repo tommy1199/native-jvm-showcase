@@ -27,14 +27,16 @@ public class TodoService {
     }
 
     public List<Todo> findAll() {
-        return context.selectFrom(TODOS_TABLE)
+        return context.select(ID_COLUMN, CONTENT_COLUMN)
+                .from(TODOS_TABLE)
                 .orderBy(ID_COLUMN)
                 .fetch()
                 .map(this::toTodo);
     }
 
     public Optional<Todo> findById(int id) {
-        return context.selectFrom(TODOS_TABLE)
+        return context.select(ID_COLUMN, CONTENT_COLUMN)
+                .from(TODOS_TABLE)
                 .where(ID_COLUMN.eq(id))
                 .fetchOptional()
                 .map(this::toTodo);
@@ -47,7 +49,6 @@ public class TodoService {
                 .returning(ID_COLUMN, CONTENT_COLUMN)
                 .fetchOptional()
                 .map(this::toTodo);
-
     }
 
     public Todo add(String title) {
