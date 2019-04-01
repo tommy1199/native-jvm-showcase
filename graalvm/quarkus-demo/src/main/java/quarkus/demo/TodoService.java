@@ -3,63 +3,61 @@ package quarkus.demo;
 import quarkus.demo.model.Todo;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
 public class TodoService {
 
-    private List<Todo> todos = new ArrayList<>();
+    @Inject
+    private EntityManager em;
 
     public TodoService() {
-        todos.add(new Todo(1, "Todo 1"));
-        todos.add(new Todo(2, "Todo 2"));
-        todos.add(new Todo(3, "Todo 3"));
-        todos.add(new Todo(4, "Todo 4"));
+    }
+
+    @Inject
+    public TodoService(EntityManager em) {
+        this();
+        this.em = em;
     }
 
     public List<Todo> findAll() {
-        return todos;
+        return em.createQuery("SELECT t FROM Todo t").getResultList();
     }
 
     public Optional<Todo> findById(int id) {
-        return todos.stream()
-                .filter(todo -> todo.getId() == id)
-                .findFirst();
+        return Optional.ofNullable(em.find(Todo.class, id));
     }
 
+    @Transactional
     public Todo addTodo(String title) {
-        Todo todo = new Todo(generateId(), title);
-        todos.add(todo);
+        Todo todo = new Todo(title);
+        em.persist(todo);
         return todo;
     }
 
-    public int generateId() {
-        int lastId = todos.stream()
-                .mapToInt(Todo::getId)
-                .max()
-                .orElse(0);
-        return lastId + 1;
-    }
-
+    @Transactional
     public boolean deleteById(Integer id) {
         Optional<Todo> todo = findById(id);
         if (todo.isPresent()) {
-            return todos.remove(todo.get());
-        } else {
-            return false;
-        }
-    }
-
-    public boolean update(Todo todo) {
-        Optional<Todo> optionalTodo = findById(todo.getId());
-        if (optionalTodo.isPresent()) {
-            todos.remove(optionalTodo.get());
-            todos.add(todo);
+            em.remove(todo.get());
             return true;
         } else {
             return false;
         }
+    }
+
+    @Transactional
+    public Optional<Todo> update(int id, String title) {
+        Optional<Todo> optionalTodo = findById(id);
+        if (optionalTodo.isPresent()) {
+            Todo todo = optionalTodo.get();
+            todo.setTitle(title);
+            em.persist(todo);
+        }
+        return optionalTodo;
     }
 }
