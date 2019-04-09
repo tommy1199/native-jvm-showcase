@@ -29,6 +29,6 @@ RUN native-image --no-server \
 
 FROM frolvlad/alpine-glibc
 EXPOSE 8080
-COPY --from=graalvm /home/gradle/micronaut-demo/micronaut-demo .
+COPY --from=graalvm /micronaut-demo .
 ENTRYPOINT ["./micronaut-demo"]
 
