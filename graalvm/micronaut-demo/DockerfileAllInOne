@@ -1,26 +1,30 @@
-FROM gradle:jdk8 as builder
-COPY --chown=gradle:gradle . /home/gradle/micronaut-demo
+FROM openjdk:11-jdk as builder
+
+COPY . /home/gradle/micronaut-demo
 WORKDIR /home/gradle/micronaut-demo
 RUN ./gradlew build
 
-FROM oracle/graalvm-ce:1.0.0-rc8 as graalvm
-COPY --from=builder /home/gradle/micronaut-demo/ /home/gradle/micronaut-demo/
-WORKDIR /home/gradle/micronaut-demo
-RUN java -cp build/libs/*-all.jar \
-            io.micronaut.graal.reflect.GraalClassLoadingAnalyzer \
-            reflect.json
+FROM oracle/graalvm-ce:1.0.0-rc13 as graalvm
+
+COPY --from=builder /home/gradle/micronaut-demo/build/libs/*-all.jar micronaut-demo.jar
+COPY ./proxy.json .
+COPY ./reflect.json .
+
 RUN native-image --no-server \
-                 --class-path /home/gradle/micronaut-demo/build/libs/*-all.jar \
-    			 -H:ReflectionConfigurationFiles=/home/gradle/micronaut-demo/reflect.json \
-    			 -H:EnableURLProtocols=http \
-    			 -H:IncludeResources='logback.xml|application.yml|META-INF/services/*.*' \
-    			 -H:+ReportUnsupportedElementsAtRuntime \
-    			 -H:+AllowVMInspection \
-    			 --rerun-class-initialization-at-runtime='sun.security.jca.JCAUtil$CachedSecureRandomHolder',javax.net.ssl.SSLContext \
-    			 --delay-class-initialization-to-runtime=io.netty.handler.codec.http.HttpObjectEncoder,io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder,io.netty.handler.ssl.util.ThreadLocalInsecureRandom \
-    			 -H:-UseServiceLoaderFeature \
-    			 -H:Name=micronaut-demo \
-    			 -H:Class=micronaut.demo.Application
+             --class-path micronaut-demo.jar \
+             -H:ReflectionConfigurationFiles=reflect.json \
+             -H:DynamicProxyConfigurationFiles=proxy.json \
+             -H:IncludeResources="logback.xml|application.yml|META-INF/services/*.*" \
+             -H:Name=micronaut-demo \
+             -H:Class=micronaut.demo.Application \
+             -H:+ReportUnsupportedElementsAtRuntime \
+             -H:+AllowVMInspection \
+             -H:+ReportExceptionStackTraces \
+             -H:-UseServiceLoaderFeature \
+             --enable-http \
+             --allow-incomplete-classpath \
+             --rerun-class-initialization-at-runtime='sun.security.jca.JCAUtil$CachedSecureRandomHolder,javax.net.ssl.SSLContext' \
+             --delay-class-initialization-to-runtime=io.netty.handler.codec.http.HttpObjectEncoder,io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder,io.netty.handler.ssl.util.ThreadLocalInsecureRandom,com.sun.jndi.dns.DnsClient,io.netty.handler.ssl.util.BouncyCastleSelfSignedCertGenerator,io.netty.handler.ssl.JdkNpnApplicationProtocolNegotiator,io.netty.handler.ssl.ReferenceCountedOpenSslEngine,io.netty.handler.ssl.ReferenceCountedOpenSslClientContext,io.netty.handler.ssl.ReferenceCountedOpenSslServerContext,io.netty.handler.ssl.ConscryptAlpnSslEngine,io.netty.handler.ssl.JettyNpnSslEngine,org.postgresql.sspi.SSPIClient
 
 
 FROM frolvlad/alpine-glibc
