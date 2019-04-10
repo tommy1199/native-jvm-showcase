@@ -2,7 +2,7 @@ FROM openjdk:11-jdk as builder
 
 COPY . /home/gradle/micronaut-demo
 WORKDIR /home/gradle/micronaut-demo
-RUN ./gradlew -q -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false --no-daemon cbuild
+RUN ./gradlew -q -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false --no-daemon build
 
 FROM oracle/graalvm-ce:1.0.0-rc13 as graalvm
 
